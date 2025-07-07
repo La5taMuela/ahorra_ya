@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:responsive_framework/responsive_framework.dart';
-import '../../providers/savings_provider.dart';
+import '../providers/savings_provider.dart';
 import '../widgets/savings_summary_card.dart';
-import '../widgets/goals_list_widget.dart';
-import '../widgets/expense_tracker_widget.dart';
+import '../widgets/simulations_widget.dart';
 import '../widgets/optimization_widget.dart';
+import '../widgets/expenses_tracker_widget.dart';
+import '../widgets/goals_widget.dart';
 import 'profile_setup_screen.dart';
 import 'expense_input_screen.dart';
+import '../widgets/enhanced_projections_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF2E7D32),
         elevation: 0,
         actions: [
-          // Botón principal + para agregar gastos
           IconButton(
             icon: const Icon(Icons.add_circle, color: Colors.white, size: 28),
             onPressed: () => _navigateToExpenseInput(),
@@ -54,21 +54,41 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: ResponsiveBreakpoints.of(context).isMobile
-          ? _buildMobileLayout()
-          : _buildWebLayout(),
-      bottomNavigationBar: ResponsiveBreakpoints.of(context).isMobile
-          ? _buildBottomNavigation()
-          : null,
-      floatingActionButton: ResponsiveBreakpoints.of(context).isMobile
-          ? FloatingActionButton(
-        onPressed: () => _navigateToExpenseInput(),
-        backgroundColor: const Color(0xFF2E7D32),
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-        tooltip: 'Agregar gastos',
-      )
-          : null,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWideScreen = constraints.maxWidth > 800;
+
+          if (isWideScreen) {
+            return _buildWebLayout();
+          } else {
+            return _buildMobileLayout();
+          }
+        },
+      ),
+      bottomNavigationBar: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            return const SizedBox.shrink();
+          }
+
+          return _buildBottomNavigation();
+        },
+      ),
+      floatingActionButton: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            return const SizedBox.shrink();
+          }
+
+          return FloatingActionButton(
+            onPressed: () => _navigateToExpenseInput(),
+            backgroundColor: const Color(0xFF2E7D32),
+            foregroundColor: Colors.white,
+            tooltip: 'Agregar gastos',
+            child: const Icon(Icons.add),
+          );
+        },
+      ),
     );
   }
 
@@ -121,7 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        // Mostrar mensaje de bienvenida si no hay usuario configurado
         if (provider.user == null) {
           return _buildWelcomeScreen();
         }
@@ -130,8 +149,10 @@ class _HomeScreenState extends State<HomeScreen> {
           index: _selectedIndex,
           children: const [
             _DashboardTab(),
-            _GoalsTab(),
             _ExpensesTab(),
+            _GoalsTab(),
+            _ProjectionsTab(),
+            _SimulationsTab(),
             _OptimizationTab(),
           ],
         );
@@ -163,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Tu asistente financiero inteligente que usa matemáticas avanzadas para optimizar tus ahorros',
+              'Tu calculadora de ahorro inteligente para optimizar tus finanzas',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -197,7 +218,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Row(
           children: [
-            // Sidebar navigation for web
             Container(
               width: 250,
               color: const Color(0xFF2E7D32),
@@ -205,9 +225,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const SizedBox(height: 20),
                   _buildNavItem(0, Icons.dashboard, 'Dashboard'),
-                  _buildNavItem(1, Icons.savings, 'Metas'),
-                  _buildNavItem(2, Icons.receipt_long, 'Gastos'),
-                  _buildNavItem(3, Icons.analytics, 'Optimización'),
+                  _buildNavItem(1, Icons.receipt_long, 'Gastos'),
+                  _buildNavItem(2, Icons.flag, 'Metas'),
+                  _buildNavItem(3, Icons.trending_up, 'Proyecciones'),
+                  _buildNavItem(4, Icons.science, 'Simulaciones'),
+                  _buildNavItem(5, Icons.analytics, 'Optimización'),
                   const Spacer(),
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -225,7 +247,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            // Main content
             Expanded(
               child: provider.user == null
                   ? _buildWelcomeScreen()
@@ -233,8 +254,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 index: _selectedIndex,
                 children: const [
                   _DashboardTab(),
-                  _GoalsTab(),
                   _ExpensesTab(),
+                  _GoalsTab(),
+                  _ProjectionsTab(),
+                  _SimulationsTab(),
                   _OptimizationTab(),
                 ],
               ),
@@ -277,16 +300,24 @@ class _HomeScreenState extends State<HomeScreen> {
           label: 'Dashboard',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.savings),
-          label: 'Metas',
-        ),
-        BottomNavigationBarItem(
           icon: Icon(Icons.receipt_long),
           label: 'Gastos',
         ),
         BottomNavigationBarItem(
+          icon: Icon(Icons.flag),
+          label: 'Metas',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.trending_up),
+          label: 'Proyecciones',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.science),
+          label: 'Simulaciones',
+        ),
+        BottomNavigationBarItem(
           icon: Icon(Icons.analytics),
-          label: 'Análisis',
+          label: 'Optimización',
         ),
       ],
     );
@@ -324,23 +355,9 @@ class _DashboardTab extends StatelessWidget {
         children: [
           SavingsSummaryCard(),
           SizedBox(height: 16),
-          GoalsListWidget(isPreview: true),
-          SizedBox(height: 16),
-          ExpenseTrackerWidget(isPreview: true),
+          EnhancedProjectionsWidget(isPreview: true),
         ],
       ),
-    );
-  }
-}
-
-class _GoalsTab extends StatelessWidget {
-  const _GoalsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(16),
-      child: GoalsListWidget(),
     );
   }
 }
@@ -352,7 +369,43 @@ class _ExpensesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.all(16),
-      child: ExpenseTrackerWidget(),
+      child: ExpensesTrackerWidget(),
+    );
+  }
+}
+
+class _GoalsTab extends StatelessWidget {
+  const _GoalsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: GoalsWidget(),
+    );
+  }
+}
+
+class _ProjectionsTab extends StatelessWidget {
+  const _ProjectionsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: EnhancedProjectionsWidget(),
+    );
+  }
+}
+
+class _SimulationsTab extends StatelessWidget {
+  const _SimulationsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: SimulationsWidget(),
     );
   }
 }

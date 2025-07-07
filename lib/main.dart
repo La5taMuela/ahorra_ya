@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:responsive_framework/responsive_framework.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'providers/savings_provider.dart';
-import 'presentation/screens/home_screen.dart';
-import 'services/cache_service.dart';
-import 'core/currency/currency_init.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Inicializar servicios
-  await CacheService.init();
-  CurrencyInit.initialize();
-
+  await initializeDateFormatting('es_ES', null);
   runApp(const AhorraYaApp());
 }
 
@@ -21,33 +16,24 @@ class AhorraYaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => SavingsProvider()),
-      ],
+    return ChangeNotifierProvider(
+      create: (context) => SavingsProvider(),
       child: MaterialApp(
-        title: 'AHORRA YA!',
-        debugShowCheckedModeBanner: false,
+        title: 'Ahorra Ya!',
         theme: ThemeData(
-          primarySwatch: Colors.green,
-          primaryColor: const Color(0xFF2E7D32),
+          useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color(0xFF2E7D32),
             brightness: Brightness.light,
           ),
-          useMaterial3: true,
-          fontFamily: 'Roboto',
-        ),
-        builder: (context, child) => ResponsiveBreakpoints.builder(
-          child: child!,
-          breakpoints: [
-            const Breakpoint(start: 0, end: 450, name: MOBILE),
-            const Breakpoint(start: 451, end: 800, name: TABLET),
-            const Breakpoint(start: 801, end: 1920, name: DESKTOP),
-            const Breakpoint(start: 1921, end: double.infinity, name: '4K'),
-          ],
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF2E7D32),
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
         ),
         home: const HomeScreen(),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }
