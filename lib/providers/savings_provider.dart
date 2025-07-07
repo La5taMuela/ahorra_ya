@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:math';
 import '../models/user_data.dart';
 import '../models/expense.dart';
 import '../models/goal.dart';
@@ -179,10 +180,37 @@ class SavingsProvider with ChangeNotifier {
 
   // Funciones matemáticas
   double proyectarAhorro(int meses) {
+    if (_user == null) return 0;
+
+    // Si los coeficientes están definidos, usar el modelo cuadrático
+    if (_user!.ahorroCoefA != 0.0 || _user!.ahorroCoefB != 0.0 || _user!.ahorroCoefC != 0.0) {
+      return SavingsCalculator.proyectarAhorroCuadratico(
+        _user!.ahorroCoefA,
+        _user!.ahorroCoefB,
+        _user!.ahorroCoefC,
+        meses,
+      );
+    }
+
+    // Fallback al modelo lineal
     return SavingsCalculator.proyectarAhorroAcumulado(ahorroMensualNeto, meses);
   }
 
   int estimarTiempoParaMeta(double metaAhorro) {
+    if (_user == null) return -1;
+
+    // Si los coeficientes están definidos, usar el modelo cuadrático
+    if (_user!.ahorroCoefA != 0.0 || _user!.ahorroCoefB != 0.0 || _user!.ahorroCoefC != 0.0) {
+      double time = SavingsCalculator.estimarTiempoParaMetaCuadratico(
+        metaAhorro,
+        _user!.ahorroCoefA,
+        _user!.ahorroCoefB,
+        _user!.ahorroCoefC,
+      );
+      return time >= 0 ? time.ceil() : -1;
+    }
+
+    // Fallback al modelo lineal
     return SavingsCalculator.estimarTiempoParaMeta(metaAhorro, ahorroMensualNeto);
   }
 
@@ -270,5 +298,31 @@ class SavingsProvider with ChangeNotifier {
 
   double calculateMaxVariableExpenses(double ahorroObjetivo) {
     return calcularGastosVariablesMaximos(ahorroObjetivo);
+  }
+
+  // Nuevos métodos para exponer las funciones de cálculo avanzadas
+  double getTasaCambioAhorro(double t) {
+    if (_user == null) return 0;
+    return SavingsCalculator.calcularDerivadaAhorro(_user!.ahorroCoefA, _user!.ahorroCoefB, t);
+  }
+
+  double getTiempoExtremoAhorro() {
+    if (_user == null) return double.nan;
+    return SavingsCalculator.encontrarExtremoAhorro(_user!.ahorroCoefA, _user!.ahorroCoefB);
+  }
+
+  double getConcavidadAhorro() {
+    if (_user == null) return 0;
+    return SavingsCalculator.calcularSegundaDerivadaAhorro(_user!.ahorroCoefA);
+  }
+
+  String getTendenciaAhorro(double t) {
+    if (_user == null) return 'Desconocida';
+    return SavingsCalculator.analizarTendencia(_user!.ahorroCoefA, _user!.ahorroCoefB, t);
+  }
+
+  bool tieneModeloCuadratico() {
+    if (_user == null) return false;
+    return _user!.ahorroCoefA != 0.0 || _user!.ahorroCoefB != 0.0 || _user!.ahorroCoefC != 0.0;
   }
 }
